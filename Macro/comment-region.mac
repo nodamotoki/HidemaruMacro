@@ -1,0 +1,748 @@
+// コメントアウトしたり、コメントを解除したりする。
+// かなり複雑で Buggy なのでリファクタしたい。
+
+setcompatiblemode 0x0F;
+disabledraw;
+begingroupundo;
+
+// ファイルタイプからコメントスタイルとコメント用のテキストを決める。
+// #comment_style			コメントスタイル
+//							1: 各行にコメントテキストが必要
+// 							2: 選択範囲の前後を囲むだけで良い。各行には必要ない。
+// $comment_text_pre		コメント開始文字列
+// $comment_text_post		コメント終了文字列
+$ft = filetype;
+if (($ft == ".cpp") ||
+	($ft == ".hpp") ||
+	($ft == ".c")   ||
+	($ft == ".h")   ||
+	0)
+{
+// 	#comment_style = 1;				// 各行にコメントテキストが必要
+// 	$comment_text_pre = "// ";
+// 	$comment_text_post = "";
+
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "/* ";
+	$comment_text_post = " */";
+
+// 	#comment_style = 2;				// 選択範囲の前後を囲むだけで良い
+// 	$comment_text_pre = "/* ";
+// 	$comment_text_post = " */";
+}
+else if (($ft == ".java") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else if (($ft == ".cs") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else if (($ft == ".swift") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else if (($ft == ".go") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else if (($ft == ".html") ||
+		 ($ft == ".htm")  ||
+		 ($ft == ".hta")  ||
+		 0)
+{
+	#comment_style = 2;				// 選択範囲の前後を囲むだけで良い
+	$comment_text_pre = "<!-- ";
+	$comment_text_post = " -->";
+}
+else if (($ft == ".css") ||
+		 0)
+{
+	#comment_style = 2;				// 選択範囲の前後を囲むだけで良い
+	$comment_text_pre = "/* ";
+	$comment_text_post = " */";
+}
+else if (($ft == ".js") ||
+		 ($ft == ".ts") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else if (($ft == ".php") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "# ";
+	$comment_text_post = "";
+}
+else if (($ft == ".py") ||
+		 ($ft == ".rb") ||
+		 ($ft == ".pl") ||
+		 ($ft == ".sh") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "# ";
+	$comment_text_post = "";
+}
+else if (($ft == ".bat") ||
+		 0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "rem ";
+	$comment_text_post = "";
+}
+else if (($ft == ".mac") ||
+		  0)
+{
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "// ";
+	$comment_text_post = "";
+}
+else {
+	// 判断できないときは # を行頭に付けるスタイルと見なす。
+	#comment_style = 1;				// 各行にコメントテキストが必要
+	$comment_text_pre = "# ";
+	$comment_text_post = "";
+}
+
+
+// 選択されていない場合は現在行を Toggle Comment
+if (! selecting) {
+	call CommentOrUncommentOneLine $comment_text_pre, $comment_text_post, 0xFFFF;
+}
+else {		// selecting == 1 の場合
+	// 選択されている場合は、その領域をコメントアウトする。
+
+//	message "comment_style=" + str(#comment_style);
+	
+	if (#comment_style == 1) {			// 各行にコメントテキストが必要なスタイル
+		#topcol = seltopcolumn;
+		#toprow = seltoplineno;
+		#endcol = selendcolumn;
+		#endrow = selendlineno;
+
+//		message "in comment_style 1";
+
+		// 選択領域がコメントアウトされているか確認
+		call IsCommentOutedRegion #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+		#result = ##return;
+		if (#result == 0) {
+			// コメントアウトされていない場合はコメントアウト
+			call CommentRegionEachLine #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+			// ↓うまくゆかず。
+			//call SelectCommentOrUncommentText #topcol, #toprow, #endcol, #endrow;
+		}
+		else {
+			// コメントアウトされていたらアンコメント
+			call UncommentRegionEachLine #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+			// ↓うまくゆかず。
+			//call SelectCommentOrUncommentText #topcol, #toprow, #endcol, #endrow;
+		}
+	}
+	else if (#comment_style == 2) {		// 選択範囲の前後を囲むだけで良いスタイル
+		#topcol = seltopcolumn;
+		#toprow = seltoplineno;
+		#endcol = selendcolumn;
+		#endrow = selendlineno;
+
+//		message "in comment_style 2";
+
+// 		message "ocol:" + str(#origin_col) + " " +
+// 				"strow:" + str(#toprow) + " " +
+// 				"secol:" + str(#endcol) + " " +
+// 				"serow:" + str(#endrow);
+// 		endmacro
+
+		call IsCommentOutedRegion #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+		#result = ##return;
+		if (#result == 0) {
+			call CommentRegion #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+			// ↓うまくゆかず。
+			//call SelectCommentOrUncommentText #topcol, #toprow, column, lineno;
+		}
+		else {
+			call UncommentRegion #topcol, #toprow, #endcol, #endrow, $comment_text_pre, $comment_text_post;
+			// ↓うまくゆかず。
+			//call SelectCommentOrUncommentText #topcol, #toprow, column, lineno;
+		}
+	}
+	else {
+		// 未知の style。何もしない
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+endgroupundo 1;
+enabledraw;
+endmacro;					// ★ サブルーチンの定義の前に endmacro が必要
+
+
+CommentOrUncommentOneLine:
+	$$comment_text_pre = $$1;
+	$$comment_text_post = $$2;
+	##leftcol = ##3;
+
+	// 各行を $$comment_text_pre と $$comment_text_post で囲む。
+	##origin_col = column;
+	##origin_row = lineno;
+	##move_col = 0;
+
+	// 空白でない最初の文字の前へ移動
+	call GoLineHeadNoWhitespace;
+	##head_col = column;
+
+	// コメントアウトされているか確認
+	call IsCommentOuted $$comment_text_pre, $$comment_text_post;
+	##result = ##return;
+	if (##result == 0) {
+		// コメントアウトされていない場合はコメントアウト
+
+		// 左カラム位置の指定がある場合はそこからコメントアウト
+		// 但し、そこから左側がすべて空白である必要あり。
+		if (##leftcol != 0xFFFF) {
+			moveto2 0, ##origin_row;
+			##cnt = 0;
+			while (##cnt < ##leftcol) {
+				if ((code != 0x20) &&
+					(code != 0x09) &&
+					1)
+				{
+					break;;
+				}
+				right;
+				##cnt = ##cnt + 1;
+			}
+		}
+		call CommentLineAfter $$comment_text_pre, $$comment_text_post;
+		##move_col = strlen($$comment_text_pre);
+	}
+	else {
+		// コメントアウトされている場合はアンコメント
+		call UncommentLineAfter $$comment_text_pre, $$comment_text_post;
+		##move_col = -1 * strlen($$comment_text_pre);
+	}
+
+	// カーソル位置を戻す
+	if (##head_col <= ##origin_col) {
+		// pre 文字列の挿入位置(head_col)が元々のカーソル位置より左なら
+		// 挿入または削除した $$comment_text_pre の文字数+" " のぶんだけカーソル位置を移動
+		moveto2 ##origin_col + ##move_col, ##origin_row;
+	}
+	else {
+		// pre 文字列の挿入位置(head_col)が元者カーソル位置より右側なら
+		// 元の位置に戻る
+		moveto2 ##origin_col, ##origin_row;
+	}
+
+
+IsCommentOuted:
+	$$comment_text_pre = $$1;
+	$$comment_text_post = $$2;
+	##result = 0;
+	// 先頭に comment_text_pre があればコメントアウトされていると見なす。
+	call GetNextText strlen($$comment_text_pre);
+	$$text = $$return;
+	if ($$text == $$comment_text_pre) {
+		##result = 1;
+	}
+	return ##result;
+
+
+// 現在位置から行末までをコメントアウト
+CommentLineAfter:
+	$$comment_text_pre = $$1;
+	$$comment_text_post = $$2;
+	if ($$comment_text_pre != "") {
+		insert $$comment_text_pre;
+	}
+	if ($$comment_text_post != "") {
+		golineend3;
+		if (leftstr($$comment_text_post, 1) != " ") {
+			insert " ";
+		}
+		insert $$comment_text_post;
+	}
+	return;
+
+// 現在位置から行末までをアンコメント
+UncommentLineAfter:
+	$$comment_text_pre = $$1;
+	$$comment_text_post = $$2;
+	if ($$comment_text_pre != "") {
+		##len = strlen($$comment_text_pre);
+		call GetNextText ##len;
+		$$outer_text = $$return;
+		if ($$outer_text == $$comment_text_pre) {
+			beginsel;
+			right ##len;
+			delete;
+		}
+	}
+	if ($$comment_text_post != "") {
+		// 行末の post コメントを削除 (memo: /* xxx *//* yyy */ ==> xxx *//* yyy になっちゃうよ)
+		golineend3;
+		##len = strlen($$comment_text_post);
+		left ##len;
+		call GetNextText ##len;
+		$$outer_text = $$return;
+		// 行末の文字列が post コメントと等しい場合だけ削除
+		if ($$outer_text == $$comment_text_post) {
+			beginsel
+			right ##len;
+			delete;
+		}
+	}
+	return;
+
+// 次の文字が改行でなければ先頭の単語を取得する
+// 改行なら "" を返す。
+// call GetNextText #len
+// #len			取り込む文字列の長さ。
+GetNextText:
+	##len = ##1;
+	$$word = "";
+	if (code != 0x0D) {
+		// 次の文字が改行でなければ先頭の単語を取得する
+		##col = column;
+		##row = lineno;
+		$$word = gettext2(##col, ##row, ##col + ##len, ##row);
+	}
+	return $$word;
+
+
+
+IsCommentOutedRegion:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	$$comment_text_pre = $$5;
+	$$comment_text_post = $$6;
+
+	moveto2 ##topcol, ##toprow;
+
+	// 空白でない最初の文字の前へ移動
+	call GoLineHeadNoWhitespace;
+
+	// 右側の空白は取り除いておく
+	call TrimRight $$comment_text_pre;
+	$$trim_str = $$return;
+
+	call GetNextText strlen($$trim_str);
+	$$text = $$return;
+
+	// 先頭に trim_str があればコメントアウトされていると見なす。
+	##result = 0;
+	if ($$text == $$trim_str) {
+		##result = 1;
+	}
+	return ##result;
+
+
+CommentRegion:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	$$comment_text_pre = $$5;
+	$$comment_text_post = $$6;
+
+	$$text = gettext2(##topcol, ##toprow, ##endcol, ##endrow);
+	$$text = $$comment_text_pre + $$text + $$comment_text_post;
+	##len = strlen($$text);
+	moveto2 ##endcol, ##endrow;
+	beginsel;
+	moveto2 ##topcol, ##toprow;
+	insert $$text, 1;
+	return;
+
+
+UncommentRegion:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	$$comment_text_pre = $$5;
+	$$comment_text_post = $$6;
+
+	##pre_len = strlen($$comment_text_pre);
+	##post_len = strlen($$comment_text_post);
+
+	$$text = gettext2(##topcol, ##toprow, ##endcol, ##endrow);
+
+	if (0 < ##pre_len) {
+		##pos = strstr($$text, $$comment_text_pre);
+		if (##pos != -1) {
+			$$text = leftstr($$text, ##pos)	+ midstr($$text, ##pos + ##pre_len);
+		}
+		else {
+			// コメント文字列中の空白文字を消してリトライしてみる
+			call TrimRight($$comment_text_pre);
+			$$trim_str = $$return;
+			##trim_len = strlen($$trim_str);
+			##pos = strstr($$text, $$trim_str);
+			if (##pos != -1) {
+				$$text = leftstr($$text, ##pos)	+ midstr($$text, ##pos + ##trim_len);
+			}
+		}
+	}
+	if (0 < ##post_len) {
+		##pos = strrstr($$text, $$comment_text_post);
+		if (##pos != -1) {
+			$$text = leftstr($$text, ##pos)	+ midstr($$text, ##pos + ##post_len);
+		}
+		else {
+			// コメント文字列中の空白文字を消してリトライしてみる
+			call TrimLeft($$comment_text_post);
+			$$trim_str = $$return;
+			##trim_len = strlen($$trim_str);
+			##pos = strrstr($$text, $$trim_str);
+			//message "\"" + $$trim_str + "\"" + "len:" + str(##trim_len) + " pos:" + str(##pos);
+			if (##pos != -1) {
+				$$text = leftstr($$text, ##pos)	+ midstr($$text, ##pos + ##trim_len);
+			}
+		}
+	}
+	moveto2 ##endcol, ##endrow;
+	beginsel;
+	moveto2 ##topcol, ##toprow;
+	insert $$text, 1;
+	return;
+
+// コメントアウト領域、またはアンコメントした領域を
+// 選択する。
+SelectCommentOrUncommentText:
+	##topcol = ##1;
+	##toprow = ##2;
+	##lastcol = ##3;
+	##lastrow = ##4;
+// message "tcol=" + str(##topcol) + " " +
+// 		"trow=" + str(##toprow) + " " +
+// 		"lcol=" + str(##lastcol) + " " +
+// 		"lrow=" + str(##lastrow) + " ";
+	moveto2 ##topcol, ##toprow;
+	beginsel;
+	moveto2 ##lastcol, ##lastrow;
+//endmacro;
+	endsel;
+
+
+CommentRegionEachLine:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	$$comment_text_pre = $$5;
+	$$comment_text_post = $$6;
+
+	call GetLeftMargin ##topcol, ##toprow, ##endcol, ##endrow;
+	##leftmargin = ##return;
+
+	##row = ##toprow;
+	call GetLineTopCol ##row, ##topcol, ##toprow, ##leftmargin;
+	##topcol_this_row = ##return;
+	call GetLineEndCol ##row, ##endcol, ##endrow;
+	##endcol_this_row = ##return;
+	while (##row <= ##endrow) {
+		// その行が空文字列の場合はコメントアウトしない
+		call IsOnlyWhiteSpaceLine ##row, ##topcol_this_row, ##endcol_this_row;
+		##empty = ##return;
+		if (! ##empty) {
+// 			message "row="  + str(##row) + " " +
+// 					"tcol=" + str(##topcol_this_row) + " " + 
+// 					"ecol=" + str(##endcol_this_row) + " " +
+// 					"pre=\""  + $$comment_text_pre + "\" " +
+// 					"post=\"" + $$comment_text_post + "\" ";
+			call CommentRegion ##topcol_this_row, ##row, ##endcol_this_row, ##row, $$comment_text_pre, $$comment_text_post;
+		}
+
+		##row = ##row + 1;
+		##leftm = ##leftmargin;
+		if (##row == ##endrow) {
+			##leftm = 0;
+		}
+		call GetLineTopCol ##row, ##topcol, ##toprow, ##leftm;
+		##topcol_this_row = ##return;
+		call GetLineEndCol ##row, ##endcol, ##endrow;
+		##endcol_this_row = ##return;
+	}
+
+	return;
+
+
+UncommentRegionEachLine:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	$$comment_text_pre = $$5;
+	$$comment_text_post = $$6;
+
+	##row = ##toprow;
+	call GetLineTopCol ##row, ##topcol, ##toprow, 0;
+	##topcol_this_row = ##return;
+	call GetLineEndCol ##row, ##endcol, ##endrow;
+	##endcol_this_row = ##return;
+	while (##row <= ##endrow) {
+		call UncommentRegion ##topcol_this_row, ##row, ##endcol_this_row, ##row, $$comment_text_pre, $$comment_text_post;
+
+		##row = ##row + 1;
+		call GetLineTopCol ##row, ##topcol, ##toprow, 0;
+		##topcol_this_row = ##return;
+		call GetLineEndCol ##row, ##endcol, ##endrow;
+		##endcol_this_row = ##return;
+	}
+
+	return;
+
+
+// 指定した行の##topcol ~ ##endcol の範囲がホワイトスペースだけかどうかを返す
+IsOnlyWhiteSpaceLine:
+	##row = ##1;
+	##topcol = ##2;
+	##endcol = ##3;
+	##result = 1;			// ホワイトスペースだけ。
+	$$text = gettext2(##topcol, ##row, ##endcol, ##row);
+	##cnt = 0;
+	##len = strlen($$text);
+	while (##cnt < ##len) {
+		$$ch = leftstr($$text, ##cnt);
+		if (($$ch != " ")  &&
+			($$ch != "\t") &&
+			($$ch != "\r") &&
+			($$ch != "\n") &&
+			1)
+		{
+			##result = 0;	// ホワイトスペース以外もあった。
+			break;
+		}
+		##cnt = ##cnt + 1;
+	}
+	return ##result;
+
+// ##row 行目の先頭のカラムを取得する
+// 最初の行だけは ##topcol になる。
+// 他の行は 0 になる。
+GetLineTopCol:
+	##row = ##1;
+	##topcol = ##2;
+	##toprow = ##3;
+	##leftmargin = ##4;
+	##result = 0;
+	if (##row == ##toprow) {
+		##result = ##topcol;
+	}
+	if (##result < ##leftmargin) {
+		##result = ##leftmargin;
+	}
+	return ##result;
+
+// ##row 行目の最後のカラムを取得する
+// 最後の行だけは ##endcol になる。
+// 他の行はその行の行末 (golineend3)になる。
+GetLineEndCol:
+	##row = ##1;
+	##endcol = ##2;
+	##endrow = ##3;
+	##result = 0;
+	if (##row == ##endrow) {
+		##result = ##endcol;
+	}
+	else {
+		##ocol = column;
+		##orow = lineno;
+		moveto2 0, ##row;
+		golineend3;
+		##result = column;
+		moveto2 ##ocol, ##orow;
+// message "col=" + str(##col) + " row=" + str(##row) + " result=" + str(##result);
+	}
+	return ##result;
+
+GetLeftMargin:
+	##topcol = ##1;
+	##toprow = ##2;
+	##endcol = ##3;
+	##endrow = ##4;
+	##leftmargin = 0xFFFF;
+
+	// 戻る場所
+	##ocol = column;
+	##orow = lineno;
+
+	// 最初の行
+	moveto2 ##topcol, ##toprow;
+	call CountWhitespace;
+	##margin = ##return;
+	if (##margin < ##leftmargin) {
+		##leftmargin = ##margin;
+	}
+//message "1 leftmargin=" + str(##leftmargin);
+
+	##currow = ##toprow + 1;
+	// 中間の行ループ
+	while (##currow < ##endrow) {
+		// カラムを進めながら空白の確認をしていく
+		moveto2 0, ##currow;
+		call CountWhitespace;
+		##margin = ##return;
+		if (##margin < ##leftmargin) {
+			##leftmargin = ##margin;
+		}
+//message "2 leftmargin=" + str(##leftmargin);
+		##currow = ##currow + 1;
+	}
+
+	// 最後の行
+	if (##endcol != 0) {
+		moveto2 0, ##endrow;
+		call CountWhitespace;
+		##margin = ##return;
+		if (##margin < ##leftmargin) {
+			##leftmargin = ##margin;
+		}
+//message "3 leftmargin=" + str(##leftmargin);
+	}
+
+	// 元の位置に戻る
+	moveto2 ##ocol, ##orow;
+//message "4 leftmargin=" + str(##leftmargin);
+	return ##leftmargin;
+
+
+CountWhitespace:
+	##ocol = column;
+	##orow = lineno;
+	##white = 0;
+	##code = code;
+	while ((##code == 0x20) ||
+		   (##code == 0x09) ||
+		   0)
+	{
+		##white = ##white + 1;
+		right;
+		##code = code;
+	}
+	moveto2 ##ocol, ##orow;
+	return ##white;
+
+
+TrimRight:
+	$$str = $$1;
+	##len = strlen($$str);
+	##cnt = ##len;
+	while (0 < ##cnt) {
+		$$ch = rightstr($$str, 1);
+		if (($$ch == " ")  ||
+			($$ch == "\t") ||
+			0)
+		{
+			##len = ##len - 1;
+			$$str = leftstr($$str, ##len);
+		}
+		else {
+			break;
+		}
+		##cnt = ##cnt - 1;
+	}
+	//message $$str;
+	return $$str;
+
+TrimLeft:
+	$$str = $$1;
+	##len = strlen($$str);
+	##cnt = ##len;
+	while (0 < ##cnt) {
+		$$ch = leftstr($$str, 1);
+		if (($$ch == " ")  ||
+			($$ch == "\t") ||
+			0)
+		{
+			##len = ##len - 1;
+			$$str = rightstr($$str, ##len);
+		}
+		else {
+			break;
+		}
+		##cnt = ##cnt - 1;
+	}
+	return $$str;
+
+
+
+
+
+
+
+
+// 現在行の空白でない最初の文字（もしあれば）へ移動。
+// 無ければ行末へ移動。
+GoLineHeadNoWhitespace:
+	golinetop2;
+	if (code != 0x0D) {
+		while ((code == 0x20) ||		// スペース
+			   (code == 0x09))			// タブ
+		{
+			right;
+		}
+		// if (code == 0x0D) {
+		// 	golinetop2;
+		// }
+	}
+	return;
+
+DeleteWhiteSpaceForward:
+	##count = 0;
+	beginsel;
+	while ((code == 0x20) ||
+		   (code == 0x09) ||
+		   0)
+	{
+		right;
+		##count = ##count + 1;
+	}
+	delete;
+	endsel;
+	return ##count;
+
+
+DeleteWhiteSpaceBackward:
+	##count = 0;
+	left;
+	while ((code == 0x20) ||
+		   (code == 0x09) ||
+		   0)
+	{
+		left;
+		##count = ##count + 1;
+	}
+	right;
+	beginsel;
+	moveto2 column + ##count, lineno;
+	delete;
+	endsel;
+	return ##count;

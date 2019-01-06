@@ -1,0 +1,8 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+escape;
+
+endgroupundo 1;
+//enabledraw;

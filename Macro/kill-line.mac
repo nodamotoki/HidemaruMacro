@@ -1,0 +1,32 @@
+setcompatiblemode 0x0F;
+disabledraw;
+begingroupundo;
+
+// Emacs “¯—l kill_whole_line ‚ª 1 ‚È‚çs“ª‚Å kill-line ‚µ‚½‚Æ‚«
+// ‰üs‚àØ‚èæ‚é
+#kill_whole_line = 1;
+
+beginsel;
+if (code == 0x0D) {
+	right;
+}
+else {
+	if (#kill_whole_line == 1 && x == 0) {
+		golineend2;
+		right;		// include LF
+	}
+	else {
+		golineend2;
+	}
+}
+
+// ŒJ‚è•Ô‚µ‘€ì‚Ìê‡
+if (replay) {
+	appendcut;
+}
+else {
+	cut;
+}
+
+endgroupundo 1;
+enabledraw;

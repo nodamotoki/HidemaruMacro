@@ -1,0 +1,138 @@
+// 今いる行を画面の上下中央に持ってくる(recenter)
+// 既に recenter されてたら画面上部に持ってくる(top)
+// 既に top にいたら画面下部に持ってくる(bottom)
+
+setcompatiblemode 0x0F;
+begingroupundo;
+
+
+if (! replay) {
+	// 繰り返し操作でない場合（最初の実行の場合)
+	// 最初は recenter 動作する
+	// message "1";
+	call ReCenter;
+}
+else {
+	// 繰り返し操作の場合
+	call GetDeltaFromCenter;
+	#delta = ##return;
+	if (#delta == 0) {
+		// center にいる場合は top へ行く
+		// message "2 delta=" + str(#delta);
+		call GotoTop;
+	}
+	else if (#delta < 0) {
+		// top にいる場合は bottom へ行く
+		// message "3 delta=" + str(#delta);
+
+		call GotoBottom;
+	}
+	else {
+		// bottom にいる場合は center へ行く
+		// message "4 delta=" + str(#delta);
+		call ReCenter;
+	}
+}
+
+endgroupundo 1;
+endmacro;			// ★ サブルーチンの定義の前に endmacro が必要
+
+
+// 現残行を画面中央に表示する。
+ReCenter:
+	call GetDeltaFromCenter;
+	##delta = ##return;
+	// message "ReCenter delta=" + str(##delta);
+	call ScrollDelta ##delta;
+	return;
+
+
+// 現在行を画面上部に持っていく
+GotoTop:
+	call GetDeltaFromTop;
+	##delta = ##return;
+	// message "GotoTop delta=" + str(##delta);
+	call ScrollDelta ##delta;
+	return;
+
+
+// 現在行を画面下部に持って行く
+GotoBottom:
+	call GetDeltaFromBottom;
+	// message "GotoBottom delta=" + str(##delta);
+	##delta = ##return;
+	call ScrollDelta ##delta;
+	return;
+
+
+// 現在行と画面中心行の差を取得。
+// 現在行のほうが上ならマイナス。
+// 現在行のほうが下ならプラス。
+GetDeltaFromCenter:
+	##col = column;
+	##row = lineno;
+	disabledraw;
+	goscreentop;
+	##top = lineno;
+	goscreenend;
+	##bottom = lineno;
+	##center = (##top + ##bottom) / 2;
+	##delta = ##row - ##center;
+	moveto2 ##col, ##row;
+	enabledraw;
+	return ##delta;
+
+
+// 現在行と画面上端との差を取得。
+// 現在行のほうが上ならマイナス（あり得ないはず)。
+// 現在行のほうが下ならプラス。
+GetDeltaFromTop:
+	##col = column;
+	##row = lineno;
+	disabledraw;
+	goscreentop;
+	##top = lineno;
+	##delta = ##row - ##top;
+	moveto2 ##col, ##row;
+	enabledraw;
+	return ##delta;
+
+
+// 現在行と画面下端との差を取得。
+// 現在行のほうが上ならマイナス。
+// 現在行のほうが下ならプラス（あり得ないはず)。
+GetDeltaFromBottom:
+	##col = column;
+	##row = lineno;
+	disabledraw;
+	goscreenend;
+	##bottom = lineno;
+	##delta = ##row - ##bottom;
+	moveto2 ##col, ##row;
+	enabledraw;
+	return ##delta;
+
+
+// 引数 delta のぶん画面をスクロールさせる
+// delta がマイナスのとき上へスクロール(rolldown)
+// delta がプラスのとき下へスクロール(rollup)
+ScrollDelta:
+	##delta = ##1;
+	##col = column;
+	##row = lineno;
+	// message "ScrollDelta delta=" + str(##delta);
+	//disabledraw;
+	if (##delta < 0) {
+		goscreentop;
+		up (-1 * ##delta);
+	}
+	else if (0 < ##delta) {
+		goscreenend;
+		down ##delta;
+	}
+	moveto2 ##col, ##row;
+	//enabledraw;
+	return;
+
+
+

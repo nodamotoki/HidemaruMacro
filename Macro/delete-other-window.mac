@@ -1,0 +1,11 @@
+setcompatiblemode 0x0F;
+disabledraw;
+begingroupundo;
+
+if (splitstate != 0) {
+	// ‘æ“ñˆø”‚ğ 2 ‚É‚·‚é‚Æí‚É•ªŠ„‚ğ Off
+	split 0, 2;
+}
+
+endgroupundo 1;
+enabledraw;
