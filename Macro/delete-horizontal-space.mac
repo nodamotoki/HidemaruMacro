@@ -1,0 +1,49 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	disabledraw;
+	// カーソルより左側のホワイトスペースを削除
+	beginsel;
+	left;
+	call IsSpace;
+	##isspace = ##return;
+	while (##isspace) {
+		left;
+		call IsSpace;
+		##isspace = ##return;
+	}
+	right;
+	delete;
+
+	// カーソルより右側のホワイトスペースを削除
+	beginsel;
+	call IsSpace;
+	##isspace = ##return;
+	while (##isspace) {
+		right;
+		call IsSpace;
+		##isspace = ##return;
+	}
+	delete;
+	enabledraw;
+	return;
+
+IsSpace:
+	##result = 0;
+	if ((code == 0x20) ||
+		(code == 0x09) ||
+		0)
+	{
+		##result = 1;
+	}
+	return ##result;
+

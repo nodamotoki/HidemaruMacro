@@ -1,0 +1,14 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	insert "------------------------------------------------------------------------\n";
+	return;

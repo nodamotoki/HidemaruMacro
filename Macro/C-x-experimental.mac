@@ -1,0 +1,30 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	$$caption = "C-x";
+	##ch = inputchar($$caption);
+	##ctrl_on = 0;
+	##CTRL = 0x11;
+	if (iskeydown(##CTRL)) {
+		##ctrl_on = 1;
+	}
+	if (char(##ch) == "r") {
+		$$caption = $$caption + " " + char(##ch);
+		##ch = inputchar($$caption);
+		##r_ctrl_on = 0;
+		if (iskeydown(##CTRL)) {
+			##r_ctrl_on = 1;
+		}
+	}
+$$msg = $$caption + " " + char(##ch) + " ctrl=" + str(##ctrl_on) + " r-ctrl=" + str(##r_ctrl_on);
+message $$msg;
+	return;

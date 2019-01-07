@@ -1,0 +1,23 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	##SHIFT = 0x10;
+	##CTRL  = 0x11;
+	##ALT   = 0x12;
+	$$caption  = "Input Key:";
+	##ch       = inputchar($$caption);
+	##shift_on = iskeydown(##SHIFT);
+	##ctrl_on  = iskeydown(##CTRL);
+	##alt_on   = iskeydown(##ALT);
+
+	insert "0x" + hex(##ch) + "(" + char(##ch) + ")" + " shift=" + str(##shift_on) + " ctrl=" + str(##ctrl_on) + " alt=" + str(##alt_on);
+	return;

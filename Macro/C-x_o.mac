@@ -1,0 +1,21 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	##CTRL = 0x11;
+	if (iskeydown(##CTRL)) {
+		execmacro "delete-blank-lines.mac";
+	}
+	else {
+		execmacro "other-window.mac";
+	}
+	return;
+

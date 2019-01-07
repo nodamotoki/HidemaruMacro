@@ -1,0 +1,44 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+Main:
+	$$caption = "C-u";
+	##ch = inputchar($$caption);
+	##num = 0;
+
+	call IsNumber ##ch;
+	##ret = ##return;
+	while (##ret == 1) {
+		##num = ##num * 10 + (##ch - 0x30);
+		//message str(##num);
+		$$caption = $$caption + " " + char(##ch);
+		##ch = inputchar($$caption);
+		call IsNumber ##ch;
+		##ret = ##return;
+	}
+	disabledraw;
+	##cnt = 0;
+	while (##cnt < ##num) {
+		insert char(##ch);
+		##cnt = ##cnt + 1;
+	}
+	enabledraw;
+	return;
+
+
+IsNumber:
+	##ch = ##1;
+	##result = 0;
+	if ((0x30 <= ##ch) && (##ch <= 0x39)) {
+		##result = 1;
+	}
+	return ##result;
+

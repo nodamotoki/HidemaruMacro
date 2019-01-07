@@ -1,0 +1,85 @@
+setcompatiblemode 0x0F;
+//disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+//enabledraw;
+endmacro;			// サブルーチンの定義の前に endmacro 必要
+
+
+// 現在行が空白なら、上下の空白行を削除し、
+// 空白行として現在行が一行だけが残るようにする。
+Main:
+	disabledraw;
+
+	##ocol = column;
+	golinetop2;
+
+	// 現在行より上を削除
+	beginsel;
+	up;
+	call IsBlankLine;
+	##blank = ##return;
+	while (##blank) {
+		up;
+		call IsBlankLine;
+		##blank = ##return;
+	}
+	down;
+	delete;
+
+	down;		// 現在行は消さないので次の行へ
+
+	// 現在行より下を削除
+	beginsel;
+	call IsBlankLine;
+	##blank = ##return;
+	while (##blank) {
+		down;
+		call IsBlankLine;
+		##blank = ##return;
+	}
+	delete;
+
+	up;							// 元の行へいく
+	moveto2 ##ocol, lineno;		// 元のカラムへいく
+
+	enabledraw;
+	return;
+
+
+
+IsSpace:
+	##result = 0;
+	if ((code == 0x20) ||
+		(code == 0x09) ||
+		0)
+	{
+		##result = 1;
+	}
+	return ##result;
+
+IsBlankLine:
+	##result = 0;
+	##ocol = column;
+	##orow = lineno;
+
+	golinetop2;
+	call IsSpace;
+	##isspace = ##return;
+	while (##isspace) {
+		right;
+		call IsSpace;
+		##isspace = ##return;
+	}
+	##breakcol = column;
+	golineend3;
+	##endcol = column;
+	if (##breakcol == ##endcol) {
+		##result = 1;
+	}
+	moveto2 ##ocol, ##orow;
+	return ##result;
+
