@@ -1,0 +1,338 @@
+//
+// 行頭に "[  ]" を入れて TODO 項目を表す
+// "[済]" でそのアイテムは終了
+// "[50%]" とか手入力できるよう[  ]の中を選択できるようにもしておく。
+//
+
+setcompatiblemode 0x2000F;
+disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+enabledraw;
+endmacro;
+
+
+Main:
+	#ocol = column;
+	#orow = lineno;
+	#lastcol = #ocol;
+	#lastrow = #orow;
+
+	$$caption = "input (i:insert h:check l:uncheck j:countdown k:countup q:quit) : ";
+	##ch = inputchar($$caption);
+
+	$$ch = tolower(char(##ch));
+	if ($$ch == "i") {
+		// "[  ]" を行頭挿入
+		call TodoInsertItem;
+	}
+	else if ($$ch == "h") {
+		// "[済]" に書き換える
+		call TodoSetChecked;
+		
+	}
+	else if ($$ch == "l") {
+		// "[  ]" に戻す
+		call TodoClearChecked;
+	}
+	else if (($$ch == "k") || ($$ch == "j")) {
+		enabledraw;
+		while (($$ch == "k") || ($$ch == "j")) {
+			if ($$ch == "k") {
+				// たとえば "[99%]" を "[100%]" に書き換える
+				// 同じキーが連続する限り続ける
+				call TodoIncremntProgress;
+			}
+			else if ($$ch == "j") {
+				// たとえば "[10%]" を "[9%]" に書き換える
+				// 同じキーが連続する限り続ける
+				call TodoDecrementProgress;
+			}
+			if (##return == 0) {
+				break;
+			}
+			##ch = inputchar($$caption);
+			$$ch = tolower(char(##ch));
+		}
+		disabledraw;
+	}
+	else if ($$ch == "m") {
+		// message("m");
+		call TodoSelectInbox;
+	}
+
+	// 元の位置に戻る
+	//moveto2 #lastcol, #lastrow;
+	return;
+
+
+// TODOアイテムの挿入
+// カーソル位置に "[  ]" を挿入する。
+TodoInsertItem:
+	insert "[  ]";
+	return;
+
+
+// "[済]"に書き換える
+TodoSetChecked:
+	##ocol = column;
+	##orow = lineno;
+	call SelectCurrentLine;
+	replacedown "\\[.*?\\]", "[済]",regular, inselect;
+	moveto2 #ocol, #orow;
+	return;
+
+
+// "[  ]" に戻す
+TodoClearChecked:
+	##ocol = column;
+	##orow = lineno;
+	call SelectCurrentLine;
+	replacedown "\\[済\\]", "[  ]",regular, inselect;
+	moveto2 #ocol, #orow;
+	return;
+
+
+// インクリメント
+TodoIncremntProgress:
+	call GetBegginingOfInboxValue;
+	##beg = ##return;
+	call GetEndOfInboxValue;
+	##end = ##return;
+	if ((##beg == -1   ) ||
+		(##end == -1   ) ||
+		(##end <= ##beg) ||
+		0)
+	{
+		return 0;		// エラー終了
+	}
+	call IsNumber ##beg;
+	if (##return == 0) {
+		return 0;
+	}
+	call GetNumber ##beg, ##end;
+	##num = ##return;
+	##num = ##num + 1;
+	$$num = str(##num);
+	call SelectNumber ##beg, ##end;
+	insert $$num;
+	return 1;
+
+
+// デクリメント
+TodoDecrementProgress:
+	call GetBegginingOfInboxValue;
+	##beg = ##return;
+	call GetEndOfInboxValue;
+	##end = ##return;
+	if ((##beg == -1   ) ||
+		(##end == -1   ) ||
+		(##end <= ##beg) ||
+		0)
+	{
+		return 0;		// エラー終了
+	}
+	call IsNumber ##beg;
+	if (##return == 0) {
+		return 0;
+	}
+	call GetNumber ##beg, ##end;
+	##num = ##return;
+	##num = ##num - 1;
+	$$num = str(##num);
+	call SelectNumber ##beg, ##end;
+	insert $$num;
+	return 1;
+
+
+// "[  ]" の中を選択
+TodoSelectInbox:
+	call GetBegginingOfInboxValue;
+	##beg = ##return;
+	call GetEndOfInboxValue ##beg;
+	##end = ##return;
+	//message("TodoSelectInbox: beg=" + str(##beg) + " end=" + str(##end));
+	moveto2 ##beg, lineno;
+	beginsel;
+	moveto2 ##end, lineno;
+//endmacro;
+	endsel;
+	return;
+
+GetBegginingOfInboxValue:
+	call GetCurrentLine;
+	$$line = $$return;
+	##beg = strstr($$line, "[");
+	##beg = ##beg + 1;
+	return ##beg;
+
+
+GetEndOfInboxValue:
+	##beg = ##1;
+	call GetCurrentLine;
+	$$line = $$return;
+	##end = strstr($$line, "]", ##beg);
+	if (##end < ##beg) {
+		##end = ##beg;
+	}
+	return ##end;
+	
+
+//====================================================================
+// 汎用サブルーチン
+//====================================================================
+
+// 現在行の空白でない最初の文字（もしあれば）へ移動。
+// 無ければ行末へ移動。
+GoLineHeadNoWhitespace:
+	golinetop2;
+	if (code != 0x0D) {
+		while ((code == 0x20) ||		// スペース
+			   (code == 0x09))			// タブ
+		{
+			right;
+		}
+		// if (code == 0x0D) {
+		// 	golinetop2;
+		// }
+	}
+	return;
+
+// 次の文字が改行でなければ指定した長さの文字を取得する
+// 改行なら "" を返す。
+// call GetNextText #len
+// #len			取り込む文字列の長さ。
+GetNextText:
+	##len = ##1;
+	$$word = "";
+	if (code != 0x0D) {
+		// 次の文字が改行でなければ先頭の単語を取得する
+		##col = column;
+		##row = lineno;
+		$$word = gettext2(##col, ##row, ##col + ##len, ##row);
+	}
+	return $$word;
+
+// 現在行の文字列をすべて取得
+GetCurrentLine:
+	##ocol = column;
+	##orow = lineno;
+	golinetop2;
+	##topcol = column;
+	##toprow = lineno;
+	golineend3;
+	##endcol = column;
+	##endrow = lineno;
+	$$line = gettext2(##topcol, ##toprow, ##endcol, ##endrow);
+	moveto2 ##ocol, ##orow;
+	return $$line;
+
+// 現在行をすべて書き換える
+SetCurrentLine:
+	$$line = $$1;
+	##ocol = column;
+	##orow = lineno;
+	golinetop2;
+	beginsel;
+	golineend3;
+	endsel;
+	delete;
+	insert $$line;
+	moveto2 ##ocol, ##orow;
+	
+// 現在行を選択
+SelectCurrentLine:
+	golinetop2;
+	beginsel;
+	golineend3;
+	endsel;
+	return;
+
+
+
+// 指定した位置に数があるか確認する
+IsNumber:
+	##beg = ##1;
+	##end = ##beg + 2;
+	##orow = lineno;
+	$$text = gettext2(##beg, ##orow, ##end, ##orow);
+	$$ch = midstr($$text, 0, 1);
+	if (($$ch == "-" ) || ($$ch == "+")) {
+		$$ch = midstr($$text, 1, 1);
+	}
+	##ch = ascii($$ch);
+	if ((0x30 <= ##ch) && (##ch <= 0x39))
+	{
+		return 1;
+	}
+	return 0;
+	
+
+// 指定した位置以降にある数値を取得
+// たぶん 4byte 幅に入らない巨大な数値は取り出せないと思う。
+GetNumber:
+	##beg = ##1;
+	##end = ##2;
+	##orow = lineno;
+	$$text = gettext2(##beg, ##orow, ##end, ##orow);
+
+	##sign = 1;		// 符号 -1:負, 1:正
+	##num = 0;
+
+	// 取り出した文字列から一文字ずつ数値か確認して ##num を作る。
+	##pos = 0;
+	$$ch = midstr($$text, ##pos, 1);
+	if (($$ch == "-") || ($$ch == "+")) {
+		if ($$ch == "-") {
+			##sign = -1;
+		}
+		##pos = ##pos + 1;
+		$$ch = midstr($$text, ##pos, 1);
+	}	
+	##ch = ascii($$ch);
+
+	//message("beg=" + str(##beg) + " end=" + str(##end) + " text=" + $$text + " ch=" + $$ch + " ascii=" + str(##ch));
+	while ((0x30 <= ##ch) &&
+		   (##ch <= 0x39) &&
+		   1)
+	{
+		##num = ##num * 10 + (##ch - 0x30);
+		##pos = ##pos + 1;
+		$$ch = midstr($$text, ##pos, 1);
+		##ch = ascii($$ch);
+	}
+	return ##sign * ##num;
+
+// 指定した位置以降にある数値を選択
+SelectNumber:
+	##beg = ##1;
+	##end = ##2;
+	##orow = lineno;
+	$$text = gettext2(##beg, ##orow, ##end, ##orow);
+
+	// 取り出した文字列から一文字ずつ数値か確認。
+	##pos = 0;
+	$$ch = midstr($$text, ##pos, 1);
+	if (($$ch == "-") || ($$ch == "+")) {
+		##pos = ##pos + 1;
+		$$ch = midstr($$text, ##pos, 1);
+	}	
+	##ch = ascii($$ch);
+	while ((0x30 <= ##ch) &&
+		   (##ch <= 0x39) &&
+		   1)
+	{
+		##pos = ##pos + 1;
+		$$ch = midstr($$text, ##pos, 1);
+		##ch = ascii($$ch);
+	}
+	
+	moveto2 ##beg, lineno;
+	beginsel;
+	moveto2 ##beg + ##pos, lineno;
+	endsel;
+	return;	
+	

@@ -2,31 +2,37 @@ setcompatiblemode 0x0F;
 disabledraw;
 begingroupundo;
 
-// Emacs 同様 kill_whole_line が 1 なら行頭で kill-line したとき
-// 改行も切り取る
-#kill_whole_line = 1;
-
-beginsel;
-if (code == 0x0D) {
-	right;
-}
-else {
-	if (#kill_whole_line == 1 && x == 0) {
-		golineend2;
-		right;		// include LF
-	}
-	else {
-		golineend2;
-	}
-}
-
-// 繰り返し操作の場合
-if (replay) {
-	appendcut;
-}
-else {
-	cut;
-}
+call Main;
 
 endgroupundo 1;
 enabledraw;
+endmacro;
+
+
+Main:
+	// Emacs 同様 kill_whole_line が 1 なら行頭で kill-line したとき
+	// 改行も切り取る
+	#kill_whole_line = 1;
+
+	beginsel;
+	if (code == 0x0D) {
+		right;
+	}
+	else {
+		if (#kill_whole_line == 1 && x == 0) {
+			golineend2;
+			right;		// include LF
+		}
+		else {
+			golineend2;
+		}
+	}
+
+	// 繰り返し操作の場合
+	if (replay) {
+		appendcut;
+	}
+	else {
+		cut;
+	}
+	return;

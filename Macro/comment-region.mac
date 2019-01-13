@@ -318,7 +318,7 @@ UncommentLineAfter:
 	}
 	return;
 
-// 次の文字が改行でなければ先頭の単語を取得する
+// 次の文字が改行でなければ指定した長さの文字を取得する
 // 改行なら "" を返す。
 // call GetNextText #len
 // #len			取り込む文字列の長さ。
