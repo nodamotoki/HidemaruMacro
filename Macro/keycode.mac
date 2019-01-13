@@ -19,5 +19,5 @@ Main:
 	##ctrl_on  = iskeydown(##CTRL);
 	##alt_on   = iskeydown(##ALT);
 
-	insert "0x" + hex(##ch) + "(" + char(##ch) + ")" + " shift=" + str(##shift_on) + " ctrl=" + str(##ctrl_on) + " alt=" + str(##alt_on);
+	insert "0x" + hex(##ch) + "(" + char(##ch) + ")" + " shift=" + str(##shift_on) + " ctrl=" + str(##ctrl_on) + " alt=" + str(##alt_on) + "\n";
 	return;
