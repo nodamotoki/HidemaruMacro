@@ -1,0 +1,27 @@
+setcompatiblemode 0x0F;
+disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo 1;
+enabledraw;
+endmacro;
+
+Main:
+    ##tabwidth = tabcount;
+    ##ocol = column;
+    ##num = (##ocol % ##tabwidth);
+	if (##num == 0) {
+		##num = ##tabwidth;
+    }
+    while (##num > 0) {
+		$$ch = gettext2(column-1, lineno, column, lineno);
+		if ($$ch != " ") {
+			// スペース以外は削除しない。
+			break;
+		}
+		backspace;
+		##num = ##num - 1;
+	}
+	return;

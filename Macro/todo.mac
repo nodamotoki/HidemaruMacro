@@ -18,10 +18,10 @@ endmacro;
 
 
 Main:
-	##ocol = column;
-	##orow = lineno;
-	##lastcol = ##ocol;
-	##lastrow = ##orow;
+	//##ocol = column;
+	//##orow = lineno;
+	//##lastcol = ##ocol;
+	//##lastrow = ##orow;
 
 	// IME On だと動かないので Off する
 	##imestate = imestate;
@@ -89,8 +89,9 @@ Main:
 			// 終了しないことにする // break;
 		}
 	} // end while(1)
-	
+
 	// 元の状態に戻る
+	// それぞれの処理で戻るかどうか異なるのでここではやらない
 	//moveto2 ##lastcol, ##lastrow;
 	if (##imestate) {
 		imeswitch;
@@ -101,27 +102,33 @@ Main:
 // TODOアイテムの挿入
 // カーソル位置に "[  ]" を挿入する。
 TodoInsertItem:
+    disabledraw;
 	insert "[  ]";
+	enabledraw;
 	return;
 
 
 // "[済]"に書き換える
 TodoSetChecked:
-	//##ocol = column;
-	//##orow = lineno;
+	##ocol = column;
+	##orow = lineno;
+    disabledraw;
 	call SelectCurrentLine;
 	replacedown "\\[.*?\\]", "[済]",regular, inselect;
-	//moveto2 ##ocol, ##orow;
+	moveto2 ##ocol, ##orow;
+    enabledraw;
 	return;
 
 
 // "[  ]" に戻す
 TodoClearChecked:
-	//##ocol = column;
-	//##orow = lineno;
+	##ocol = column;
+	##orow = lineno;
+    disabledraw;
 	call SelectCurrentLine;
 	replacedown "\\[.*?\\]", "[  ]",regular, inselect;
-	//moveto2 ##ocol, ##orow;
+	moveto2 ##ocol, ##orow;
+    enabledraw;
 	return;
 
 

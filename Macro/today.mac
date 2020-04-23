@@ -1,0 +1,13 @@
+//setcompatiblemode 0x2000F;
+setcompatiblemode 0x0F;
+disabledraw;
+begingroupundo;
+
+call Main;
+
+endgroupundo;
+enabledraw;
+endmacro;
+
+Main:
+    insert month + "/" + day + "(" + dayofweek + ")";
